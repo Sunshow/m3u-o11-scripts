@@ -37,6 +37,10 @@ def parse_m3u(content):
             tvg_logo = re.search(r'tvg-logo="([^"]*)"', line)
             tvg_group = re.search(r'group-title="([^"]*)"', line)
 
+            chars_to_replace = [' ', ',', '.', '!', '-', '(', ')']
+            # 转义特殊字符并构建正则模式
+            pattern = '[{}]'.format(re.escape(''.join(chars_to_replace)))
+
             # Get URL from next line
             i += 1
             if i < len(lines):
@@ -44,7 +48,7 @@ def parse_m3u(content):
 
                 channel = {
                     'id': tvg_id.group(1) if tvg_id else "",
-                    'name': tvg_name.group(1) if tvg_name else "",
+                    'name': re.sub(pattern, '', tvg_name.group(1)) if tvg_name else "",
                     'logo': tvg_logo.group(1) if tvg_logo else "",
                     'url': url,
                     'group': tvg_group.group(1) if tvg_group else "Ungrouped",
