@@ -63,7 +63,7 @@ def create_channel_object(channel):
     """Create channel object in the required format."""
     return {
         "Name": f"{channel['group']} - {channel['name']}",
-        "Id": channel['name'],
+        "Id": channel['id'],
         "LogoUrl": channel['logo'],
         "IsEvent": False,
         "RecordEvent": False,

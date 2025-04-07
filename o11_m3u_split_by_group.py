@@ -45,6 +45,16 @@ def extract_channel_info(extinf_line, url):
 
         # Create new EXTINF line with modified group-title
         new_extinf = extinf_line.split(',', 1)[0]  # Keep all tags
+
+        # Remove provider prefix from tvg-id attribute
+        if provider != "unknown":
+            new_extinf = re.sub(
+                r'tvg-id="' + provider + r'/([^"]*)"',
+                r'tvg-id="\1"',
+                new_extinf
+            )
+
+        # Update group-title
         new_extinf = re.sub(r'group-title="[^"]*"', f'group-title="{new_group}"', new_extinf)
         new_extinf += f',{channel_name}'
     else:
