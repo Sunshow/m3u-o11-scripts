@@ -150,7 +150,7 @@ def create_mytvsuper_channel_object(channel):
 
     return {
         "Name": channel['name'],
-        "Id": channel['id'],
+        "Id": channel['name'],
         "LogoUrl": channel['logo'],
         "IsEvent": False,
         "RecordEvent": False,

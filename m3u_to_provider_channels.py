@@ -57,7 +57,7 @@ def create_channel_object(channel):
     """Create channel object in the required format."""
     return {
         "Name": channel['name'],
-        "Id": channel['id'],
+        "Id": channel['name'],
         "LogoUrl": channel['logo'],
         "IsEvent": False,
         "RecordEvent": False,
@@ -75,7 +75,7 @@ def create_channel_object(channel):
         "PipeOutputParams": "",
         "ProtoOutputParams": "",
         "SessionManifest": False,
-        "SpeedUp": False,
+        "SpeedUp": True,
         "UseCdm": False,
         "Cdm": "",
         "CdmType": "widevine",
