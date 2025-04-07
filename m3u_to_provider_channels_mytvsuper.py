@@ -35,11 +35,13 @@ def parse_mytvsuper_m3u(content):
             tvg_id = re.search(r'tvg-id="([^"]*)"', line)
             tvg_name = re.search(r'tvg-name="([^"]*)"', line)
             tvg_logo = re.search(r'tvg-logo="([^"]*)"', line)
+            tvg_group = re.search(r'group-title="([^"]*)"', line)
 
             channel = {
                 'id': tvg_id.group(1) if tvg_id else "",
                 'name': tvg_name.group(1) if tvg_name else "",
                 'logo': tvg_logo.group(1) if tvg_logo else "",
+                'group': tvg_group.group(1) if tvg_group else "Ungrouped",
                 'manifest_type': "",
                 'license_type': "",
                 'license_key': "",
@@ -149,7 +151,7 @@ def create_mytvsuper_channel_object(channel):
         manifest_info = "Format: <i><b>dash (live)</b></i><br>Best video: <i><b>2160p50</b></i><br>Duration: <i><b>2h59m52s</b></i><br>\nDRM: <i><b>widevine playready </b></i><br>"
 
     return {
-        "Name": channel['name'],
+        "Name": f"{channel['group']} - {channel['name']}",
         "Id": channel['name'],
         "LogoUrl": channel['logo'],
         "IsEvent": False,

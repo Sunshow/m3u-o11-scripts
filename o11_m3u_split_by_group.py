@@ -9,7 +9,6 @@ def read_m3u_file(filepath):
         with open(filepath, 'r', encoding='utf-8') as f:
             return f.read()
     except UnicodeDecodeError:
-        # Try another common encoding
         try:
             with open(filepath, 'r', encoding='latin-1') as f:
                 return f.read()
@@ -21,13 +20,46 @@ def read_m3u_file(filepath):
         sys.exit(1)
 
 
-def parse_m3u_by_group(content):
-    """Parse M3U content and organize channels by group."""
-    groups = {}
+def extract_channel_info(extinf_line, url):
+    """Extract provider and reformat channel info."""
+    # Extract provider
+    provider_match = re.search(r'provider="([^"]*)"', extinf_line)
+    provider = provider_match.group(1) if provider_match else "unknown"
+
+    # Extract channel name
+    channel_match = re.search(r',(.*?)$', extinf_line)
+    if channel_match:
+        full_name = channel_match.group(1).strip()
+
+        # Remove provider prefix (e.g., "[hami] ")
+        clean_name = re.sub(r'^\[.*?\]\s*', '', full_name)
+
+        # Extract new group and channel name
+        if ' - ' in clean_name:
+            new_group, channel_name = clean_name.split(' - ', 1)
+            new_group = new_group.strip()
+            channel_name = channel_name.strip()
+        else:
+            new_group = "Ungrouped"
+            channel_name = clean_name
+
+        # Create new EXTINF line with modified group-title
+        new_extinf = extinf_line.split(',', 1)[0]  # Keep all tags
+        new_extinf = re.sub(r'group-title="[^"]*"', f'group-title="{new_group}"', new_extinf)
+        new_extinf += f',{channel_name}'
+    else:
+        new_extinf = extinf_line
+        provider = "unknown"
+
+    return provider, new_extinf, url
+
+
+def parse_m3u_by_provider(content):
+    """Parse M3U content and organize channels by provider."""
+    providers = {}
     lines = content.strip().split('\n')
 
     header = None
-    # Check for header line
     if lines and lines[0].startswith('#EXTM3U'):
         header = lines[0]
         lines = lines[1:]
@@ -36,110 +68,86 @@ def parse_m3u_by_group(content):
     while i < len(lines):
         line = lines[i].strip()
 
-        # Skip empty lines
         if not line:
             i += 1
             continue
 
-        # Look for EXTINF line
         if line.startswith('#EXTINF:'):
-            # Extract group-title
-            group_match = re.search(r'group-title="([^"]*)"', line)
-            group = group_match.group(1) if group_match else "Ungrouped"
-
-            # Get URL from next line
             i += 1
             if i < len(lines):
                 url = lines[i].strip()
 
-                # Skip if URL is empty or another EXTINF
                 if not url or url.startswith('#'):
                     i += 1
                     continue
 
-                # Add channel to group
-                if group not in groups:
-                    groups[group] = []
+                provider, new_extinf, url = extract_channel_info(line, url)
 
-                groups[group].append((line, url))
+                if provider not in providers:
+                    providers[provider] = []
+
+                providers[provider].append((new_extinf, url))
         i += 1
 
-    return header, groups
+    return header, providers
 
 
 def sanitize_filename(name):
     """Convert a string to a valid filename."""
-    # Replace invalid file characters
     sanitized = re.sub(r'[\\/*?:"<>|]', '_', name)
-    # Remove leading/trailing spaces and dots
     sanitized = sanitized.strip('. ')
-    # Use "Ungrouped" if the name becomes empty
     if not sanitized:
-        sanitized = "Ungrouped"
+        sanitized = "unknown"
     return sanitized
 
 
-def write_group_m3u_files(header, groups, output_dir='.'):
-    """Write separate M3U files for each group."""
+def write_provider_m3u_files(header, providers, output_dir='.'):
+    """Write separate M3U files for each provider."""
     os.makedirs(output_dir, exist_ok=True)
+    provider_counts = {}
 
-    group_counts = {}
-
-    for group, channels in groups.items():
-        # Create a valid filename
-        safe_group_name = sanitize_filename(group)
-
-        output_path = os.path.join(output_dir, f"{safe_group_name}.m3u")
+    for provider, channels in providers.items():
+        safe_provider_name = sanitize_filename(provider)
+        output_path = os.path.join(output_dir, f"{safe_provider_name}.m3u")
 
         with open(output_path, 'w', encoding='utf-8') as f:
-            # Write header
             if header:
                 f.write(f"{header}\n")
             else:
                 f.write("#EXTM3U\n")
 
-            # Write channels
             for extinf, url in channels:
                 f.write(f"{extinf}\n{url}\n")
 
-        group_counts[safe_group_name] = len(channels)
+        provider_counts[safe_provider_name] = len(channels)
         print(f"Created {output_path} with {len(channels)} channels")
 
-    return group_counts
+    return provider_counts
 
 
 def main():
     if len(sys.argv) != 2:
-        print("Usage: python o11_m3u_split_by_group.py <input_m3u_file>")
+        print("Usage: python o11_m3u_split_by_provider.py <input_m3u_file>")
         sys.exit(1)
 
     input_file = sys.argv[1]
-
-    # Read input file
     content = read_m3u_file(input_file)
 
-    # Parse content by group
-    header, groups = parse_m3u_by_group(content)
-
-    # Create output directory based on input file name
-    base_name = os.path.splitext(os.path.basename(input_file))[0]
-    output_dir = f"output"
+    header, providers = parse_m3u_by_provider(content)
+    output_dir = "output"
 
     header = f'#EXTM3U\n#EXTM3U x-tvg-url="https://assets.livednow.com/epg.xml"\n'
 
-    # Write group files
-    group_counts = write_group_m3u_files(header, groups, output_dir)
+    provider_counts = write_provider_m3u_files(header, providers, output_dir)
 
-    # Print summary
-    total_channels = sum(group_counts.values())
+    total_channels = sum(provider_counts.values())
     print(f"\nSummary:")
-    print(f"Total groups: {len(groups)}")
+    print(f"Total providers: {len(providers)}")
     print(f"Total channels: {total_channels}")
 
-    # Print channel count by group
-    print("\nChannels per group:")
-    for group, count in sorted(group_counts.items(), key=lambda x: x[1], reverse=True):
-        print(f"  {group}: {count} channels")
+    print("\nChannels per provider:")
+    for provider, count in sorted(provider_counts.items(), key=lambda x: x[1], reverse=True):
+        print(f"  {provider}: {count} channels")
 
     print(f"\nOutput directory: {output_dir}")
 

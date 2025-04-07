@@ -35,6 +35,7 @@ def parse_m3u(content):
             tvg_id = re.search(r'tvg-id="([^"]*)"', line)
             tvg_name = re.search(r'tvg-name="([^"]*)"', line)
             tvg_logo = re.search(r'tvg-logo="([^"]*)"', line)
+            tvg_group = re.search(r'group-title="([^"]*)"', line)
 
             # Get URL from next line
             i += 1
@@ -45,7 +46,8 @@ def parse_m3u(content):
                     'id': tvg_id.group(1) if tvg_id else "",
                     'name': tvg_name.group(1) if tvg_name else "",
                     'logo': tvg_logo.group(1) if tvg_logo else "",
-                    'url': url
+                    'url': url,
+                    'group': tvg_group.group(1) if tvg_group else "Ungrouped",
                 }
                 channels.append(channel)
         i += 1
@@ -56,7 +58,7 @@ def parse_m3u(content):
 def create_channel_object(channel):
     """Create channel object in the required format."""
     return {
-        "Name": channel['name'],
+        "Name": f"{channel['group']} - {channel['name']}",
         "Id": channel['name'],
         "LogoUrl": channel['logo'],
         "IsEvent": False,
