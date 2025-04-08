@@ -96,7 +96,7 @@ def create_channel_object(channel):
         "TimeRange": False,
         "ManifestScript": "",
         "Manifest": channel['url'],
-        "ManifestType": "",
+        "ManifestType": "hls",
         "ManifestInfo": "",
         "Video": "best",
         "Audio": "",
