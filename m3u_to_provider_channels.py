@@ -96,7 +96,7 @@ def create_channel_object(channel):
         "TimeRange": False,
         "ManifestScript": "",
         "Manifest": channel['url'],
-        "ManifestType": "hls",
+        "ManifestType": "",
         "ManifestInfo": "",
         "Video": "best",
         "Audio": "",
@@ -128,7 +128,7 @@ def create_provider_object(name, channels):
     return {
         "Name": name,
         "Id": name,
-        "RunningMode": "internalremuxer",
+        "RunningMode": "ffmpeg",
         "OutputMode": "directhls",
         "Script": "",
         "LogoUrl": "",
